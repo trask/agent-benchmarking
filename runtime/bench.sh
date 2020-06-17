@@ -84,6 +84,8 @@ ftp_url=$(az webapp deployment list-publishing-profiles --name $app_name \
 
 curl -T $agent_jar_file -u \$$app_name:$deployment_password $ftp_url/../../agent.jar
 
+curl -T ApplicationInsights.json -u \$$app_name:$deployment_password $ftp_url/../../ApplicationInsights.json
+
 curl -X POST -u \$$app_name:$deployment_password https://$app_name.scm.azurewebsites.net/api/wardeploy --data-binary @$war_file
 
 # start app from fresh point
