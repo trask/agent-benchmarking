@@ -10,8 +10,16 @@ warmup_time=$5
 run_time=$6
 result_dir=$7
 
-image_name=atacr01.azurecr.io/petclinic:v1
-registry_url=https://atacr01.azurecr.io
+agent_jar_file=agent.jar
+war_file=petclinic.war
+
+# linux
+runtime="TOMCAT|9.0-jre8"
+appservice_plan_os_flag=--is-linux
+
+# windows
+#runtime="java|1.8|Tomcat|8.5"
+#appservice_plan_os_flag=
 
 mkdir -p $result_dir
 
@@ -50,22 +58,33 @@ instrumentation_key=$(az monitor app-insights component create --app $app_name \
 
 az appservice plan create --name $app_name \
                           --resource-group $app_name \
-                          --is-linux \
+                          $appservice_plan_os_flag \
                           --sku P1V2
 
 az webapp create --name $app_name \
                  --resource-group $app_name \
                  --plan $app_name \
-                 --deployment-container-image-name $image_name
+                 --runtime $runtime
 
 az webapp config appsettings set --name $app_name \
                                  --resource-group $app_name \
                                  --settings APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=$instrumentation_key
 
-az webapp config container set --name $app_name \
-                               --resource-group $app_name \
-                               --docker-custom-image-name $image_name \
-                               --docker-registry-server-url $registry_url
+deployment_password=$(az webapp deployment list-publishing-profiles --name $app_name \
+                                                                    --resource-group $app_name \
+                                                                    --query '[].userPWD' \
+                                                                    --output tsv \
+                                                                    | head -1)
+
+ftp_url=$(az webapp deployment list-publishing-profiles --name $app_name \
+                                                        --resource-group $app_name \
+                                                        --query "[?contains(publishMethod, 'FTP')].publishUrl" \
+                                                        --output tsv \
+                                                        | head -1)
+
+curl -T $agent_jar_file -u \$$app_name:$deployment_password $ftp_url/../../agent.jar
+
+curl -X POST -u \$$app_name:$deployment_password https://$app_name.scm.azurewebsites.net/api/wardeploy --data-binary @$war_file
 
 # start app from fresh point
 az webapp restart --name $app_name \
