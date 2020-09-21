@@ -3,7 +3,7 @@
 prefix=$1
 num=$2
 
-subscription=8938312c-1467-4f13-8676-62397dfcdaa1
+subscription=65b2f83e-7bf1-4be3-bafc-3a4163265a52
 
 for i in $(seq $num)
 do
